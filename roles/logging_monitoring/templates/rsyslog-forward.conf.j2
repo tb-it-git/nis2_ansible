@@ -1,0 +1,4 @@
+# {{ ansible_managed }}
+# NIS2 / Paragraph 30 BSIG - zentrale Log-Weiterleitung (roles/logging_monitoring)
+# Produktiv: TLS (gtls) oder RELP (omrelp) verwenden!
+*.* @@{{ logging_monitoring_rsyslog_target }}:{{ logging_monitoring_rsyslog_port }}

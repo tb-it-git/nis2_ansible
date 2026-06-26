@@ -1,0 +1,5 @@
+---
+- name: Unsichere/ueberfluessige Pakete entfernen
+  ansible.builtin.dnf:
+    name: "{{ hardening_packages_absent }}"
+    state: absent

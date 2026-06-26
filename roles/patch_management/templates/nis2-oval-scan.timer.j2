@@ -1,0 +1,11 @@
+# {{ ansible_managed }}
+[Unit]
+Description=NIS2 weekly OVAL vulnerability scan
+
+[Timer]
+OnCalendar={{ patch_management_oval_oncalendar }}
+RandomizedDelaySec=1800
+Persistent=true
+
+[Install]
+WantedBy=timers.target

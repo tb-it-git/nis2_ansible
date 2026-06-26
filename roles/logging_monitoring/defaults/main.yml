@@ -1,0 +1,30 @@
+---
+# roles/logging_monitoring/defaults/main.yml
+# Logging, Audit und Monitoring-Agent (RHEL 9/10). Ueberschreibbar.
+
+# --- journald ---
+logging_monitoring_journald_storage: "persistent"
+logging_monitoring_journald_compress: true
+logging_monitoring_journald_max_retention: "1month"
+logging_monitoring_journald_forward_syslog: true
+
+# --- auditd ---
+logging_monitoring_auditd_sample_rules:
+  - "10-base-config.rules"
+  - "30-stig.rules"
+  - "31-privileged.rules"
+# Immutable (-e 2) ueber 99-finalize.rules: erfordert Reboot fuer spaetere Aenderungen.
+# Standardmaessig aus, damit die Rolle wiederholbar bleibt; in Produktion aktivieren.
+logging_monitoring_auditd_immutable: false
+
+# --- node_exporter (Prometheus) ---
+logging_monitoring_node_exporter_enabled: true
+logging_monitoring_node_exporter_package: "golang-github-prometheus-node-exporter"
+logging_monitoring_node_exporter_service: "node_exporter"
+# EPEL bereitstellen (node_exporter ist nicht in den RHEL-Basis-Repos)
+logging_monitoring_node_exporter_install_epel: false
+
+# --- zentrale Log-Weiterleitung (optional) ---
+logging_monitoring_rsyslog_forward_enabled: false
+logging_monitoring_rsyslog_target: "logcollector.example.com"
+logging_monitoring_rsyslog_port: 6514

@@ -1,0 +1,40 @@
+#!/bin/bash
+# {{ ansible_managed }}
+# NIS2 / Paragraph 30 BSIG - Restic-Sicherung mit Wartung (roles/backup)
+set -euo pipefail
+
+# shellcheck source=/dev/null
+source /etc/restic/restic.env
+
+# Verwaiste Locks vorheriger Laeufe entfernen
+restic unlock || true
+
+# Sichern
+restic backup {{ backup_paths | join(' ') }} \
+  --exclude-file=/etc/restic/excludes.txt \
+  --tag {{ backup_tag }}
+
+{% if backup_prune_enabled %}
+# Aufbewahrung anwenden und Speicher freigeben
+restic forget --prune \
+  --keep-daily {{ backup_keep_daily }} \
+  --keep-weekly {{ backup_keep_weekly }} \
+  --keep-monthly {{ backup_keep_monthly }} \
+  --keep-yearly {{ backup_keep_yearly }}
+{% endif %}
+
+# Integritaet stichprobenartig pruefen
+restic check --read-data-subset={{ backup_check_read_data_subset }}
+
+{% if backup_metrics_enabled %}
+# Erfolgsmetrik fuer node_exporter (atomar schreiben)
+TMP="$(mktemp)"
+{
+  echo "# HELP restic_backup_last_success_timestamp_seconds Last successful restic backup."
+  echo "# TYPE restic_backup_last_success_timestamp_seconds gauge"
+  echo "restic_backup_last_success_timestamp_seconds $(date +%s)"
+} > "$TMP"
+mv "$TMP" "{{ backup_metrics_textfile }}"
+{% endif %}
+
+logger "NIS2 backup: Sicherung erfolgreich abgeschlossen"

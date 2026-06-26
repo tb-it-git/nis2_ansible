@@ -1,0 +1,34 @@
+---
+# roles/iam/defaults/main.yml
+# Zentrale Auth-Mechanik, Kontosperre, Passwortpolitik und sudo (RHEL 9/10).
+# Der Domaenenbeitritt (ipa-client-install / LDAP) ist NICHT Teil dieser Rolle.
+
+iam_packages:
+  - sssd
+  - oddjob-mkhomedir
+  - authselect
+  - libsss_sudo
+
+# authselect-Profil und Features
+iam_authselect_profile: "sssd"
+iam_authselect_features:
+  - "with-mkhomedir"
+  - "with-faillock"
+  - "with-sudo"
+
+# Kontosperre nach Fehlversuchen (/etc/security/faillock.conf)
+iam_faillock_deny: 5
+iam_faillock_unlock_time: 900
+iam_faillock_fail_interval: 900
+
+# Mindest-Passwortqualitaet (/etc/security/pwquality.conf.d/90-nis2.conf)
+iam_pwquality_minlen: 14
+iam_pwquality_dcredit: -1
+iam_pwquality_ucredit: -1
+iam_pwquality_ocredit: -1
+iam_pwquality_lcredit: -1
+
+# sudo (/etc/sudoers.d/10-nis2-admins)
+iam_sudo_admin_group: "ssh-admins"
+iam_sudo_use_pty: true
+iam_sudo_logfile: "/var/log/sudo.log"

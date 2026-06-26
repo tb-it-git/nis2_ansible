@@ -1,0 +1,24 @@
+#!/bin/bash
+# {{ ansible_managed }}
+# NIS2 / Paragraph 30 BSIG - woechentlicher OVAL-Schwachstellenscan
+set -euo pipefail
+
+REPORT_DIR="{{ patch_management_oval_report_dir }}"
+MAJOR="{{ ansible_distribution_major_version }}"
+URL="{{ patch_management_oval_base_url }}/RHEL${MAJOR}/rhel-${MAJOR}.oval.xml.bz2"
+DATE="$(date +%Y%m%d)"
+HOST="$(hostname -s)"
+OVAL="${REPORT_DIR}/rhel-oval.xml"
+
+mkdir -p "$REPORT_DIR"
+curl -fsSL "$URL" | bzip2 -d > "$OVAL"
+
+# oscap liefert Exit != 0, wenn Verwundbarkeiten gefunden werden -> nicht abbrechen
+oscap oval eval \
+  --results "${REPORT_DIR}/${HOST}-${DATE}-oval.xml" \
+  --report  "${REPORT_DIR}/${HOST}-${DATE}-oval.html" \
+  "$OVAL" || true
+
+# alte Reports nach 90 Tagen entfernen
+find "$REPORT_DIR" -name '*-oval.*' -mtime +90 -delete
+logger "NIS2 patch_management: OVAL-Scan abgeschlossen (${HOST} ${DATE})"

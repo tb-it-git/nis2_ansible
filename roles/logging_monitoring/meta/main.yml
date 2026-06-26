@@ -1,0 +1,19 @@
+---
+galaxy_info:
+  role_name: logging_monitoring
+  author: tb-it.eu
+  description: NIS2-orientiertes Logging, Audit und Monitoring fuer RHEL 9/10
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+        - "10"
+  galaxy_tags:
+    - security
+    - logging
+    - audit
+    - monitoring
+    - nis2
+dependencies: []

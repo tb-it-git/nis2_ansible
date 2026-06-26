@@ -1,0 +1,7 @@
+# {{ ansible_managed }}
+# NIS2 / Paragraph 30 BSIG - persistentes Logging (roles/logging_monitoring)
+[Journal]
+Storage={{ logging_monitoring_journald_storage }}
+Compress={{ logging_monitoring_journald_compress | ternary('yes', 'no') }}
+MaxRetentionSec={{ logging_monitoring_journald_max_retention }}
+ForwardToSyslog={{ logging_monitoring_journald_forward_syslog | ternary('yes', 'no') }}

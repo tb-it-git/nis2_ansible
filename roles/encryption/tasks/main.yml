@@ -1,0 +1,28 @@
+---
+- name: Eigene Krypto-Subpolicy ausbringen
+  ansible.builtin.copy:
+    content: "{{ encryption_custom_module_content }}"
+    dest: "/etc/crypto-policies/policies/modules/{{ encryption_custom_module_name }}.pmod"
+    owner: root
+    group: root
+    mode: "0644"
+  when: encryption_custom_module_enabled | bool
+
+- name: Aktuelle Krypto-Policy ermitteln
+  ansible.builtin.command: update-crypto-policies --show
+  register: encryption_current_policy
+  changed_when: false
+
+- name: Systemweite Krypto-Policy setzen
+  ansible.builtin.command: "update-crypto-policies --set {{ encryption_crypto_policy }}"
+  register: encryption_set_policy
+  when: encryption_current_policy.stdout | trim != encryption_crypto_policy
+  changed_when: encryption_set_policy.rc == 0
+  # Hinweis: Nach einem Policy-Wechsel wird ein Reboot empfohlen, damit alle
+  # laufenden Dienste die neue Krypto-Policy uebernehmen.
+
+- name: NBDE-/LUKS-Tooling installieren
+  ansible.builtin.dnf:
+    name: "{{ encryption_nbde_packages }}"
+    state: present
+  when: encryption_install_nbde_tools | bool

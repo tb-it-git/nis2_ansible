@@ -1,0 +1,5 @@
+# {{ ansible_managed }}
+# NIS2 / Paragraph 30 BSIG - Kernel-Haertung (roles/hardening)
+{% for key, value in hardening_sysctl.items() %}
+{{ key }} = {{ value }}
+{% endfor %}

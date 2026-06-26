@@ -1,0 +1,11 @@
+---
+- name: SELinux auf Enforcing/targeted setzen
+  ansible.posix.selinux:
+    state: "{{ hardening_selinux_state }}"
+    policy: "{{ hardening_selinux_policy }}"
+  register: hardening_selinux_result
+
+- name: Hinweis ausgeben, falls ein Reboot noetig ist
+  ansible.builtin.debug:
+    msg: "SELinux-Aenderung erfordert einen Reboot, um vollstaendig wirksam zu werden."
+  when: hardening_selinux_result.reboot_required | default(false)

@@ -1,0 +1,11 @@
+# {{ ansible_managed }}
+[Unit]
+Description=NIS2 Restic backup (scheduled)
+
+[Timer]
+OnCalendar={{ backup_oncalendar }}
+RandomizedDelaySec={{ backup_randomized_delay }}
+Persistent=true
+
+[Install]
+WantedBy=timers.target

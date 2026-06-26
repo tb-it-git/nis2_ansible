@@ -1,0 +1,7 @@
+# {{ ansible_managed }}
+# NIS2 / Paragraph 30 BSIG - administrative Rechte (roles/iam)
+{% if iam_sudo_use_pty %}
+Defaults use_pty
+{% endif %}
+Defaults logfile="{{ iam_sudo_logfile }}"
+%{{ iam_sudo_admin_group }} ALL=(ALL) ALL

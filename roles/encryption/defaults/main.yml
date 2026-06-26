@@ -1,0 +1,29 @@
+---
+# roles/encryption/defaults/main.yml
+# Systemweite Krypto-Policy und NBDE-Tooling (RHEL 9/10).
+# Die LUKS-Einrichtung selbst ist datentraegerspezifisch/destruktiv und NICHT Teil dieser Rolle.
+
+# Systemweite Krypto-Policy: DEFAULT | FUTURE | LEGACY | FIPS
+# oder mit Subpolicy, z. B. "DEFAULT:NO-SHA1:NO-CBC" bzw. "DEFAULT:PQ" (ab RHEL 9.7)
+encryption_crypto_policy: "DEFAULT"
+
+# Optionale eigene Subpolicy (.pmod) ausbringen
+encryption_custom_module_enabled: false
+encryption_custom_module_name: "NIS2-HARDENED"
+encryption_custom_module_content: |
+  # NIS2-HARDENED: starke Vorgaben ergaenzend zur Basis-Policy
+  min_rsa_size = 3072
+  hash = -SHA1
+  sign = -RSA-SHA1 -ECDSA-SHA1 -RSA-PSS-SHA1
+  mac = -HMAC-SHA1
+  cipher = -AES-128-CBC -AES-256-CBC
+  protocol = -TLS1.0 -TLS1.1 -SSL3.0
+
+# Optional: NBDE-/LUKS-Tooling installieren (fuer spaeteres clevis luks bind)
+encryption_install_nbde_tools: false
+encryption_nbde_packages:
+  - clevis
+  - clevis-luks
+  - clevis-dracut
+  - cryptsetup
+  - tpm2-tools

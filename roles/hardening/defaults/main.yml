@@ -1,0 +1,50 @@
+---
+# roles/hardening/defaults/main.yml
+# Stellschrauben der NIS2-Basis-Haertung. In group_vars/host_vars ueberschreibbar.
+
+# --- SSH (Drop-in /etc/ssh/sshd_config.d/50-nis2-hardening.conf) ---
+hardening_ssh_allow_group: "ssh-users"
+hardening_ssh_permit_root_login: "no"
+hardening_ssh_password_auth: "no"
+hardening_ssh_max_auth_tries: 4
+hardening_ssh_login_grace_time: 30
+hardening_ssh_client_alive_interval: 300
+hardening_ssh_client_alive_count_max: 1
+hardening_ssh_banner: "/etc/issue.net"
+
+# --- Kernel/sysctl (Drop-in /etc/sysctl.d/90-nis2-hardening.conf) ---
+hardening_sysctl:
+  net.ipv4.conf.all.rp_filter: "1"
+  net.ipv4.conf.all.accept_redirects: "0"
+  net.ipv4.conf.all.send_redirects: "0"
+  net.ipv4.conf.all.accept_source_route: "0"
+  net.ipv4.conf.all.log_martians: "1"
+  net.ipv4.icmp_echo_ignore_broadcasts: "1"
+  net.ipv4.tcp_syncookies: "1"
+  net.ipv6.conf.all.accept_redirects: "0"
+  kernel.kptr_restrict: "2"
+  kernel.dmesg_restrict: "1"
+  kernel.yama.ptrace_scope: "1"
+  fs.suid_dumpable: "0"
+
+# --- SELinux ---
+hardening_selinux_state: "enforcing"
+hardening_selinux_policy: "targeted"
+
+# --- Dienste/Pakete ---
+hardening_services_disable:
+  - avahi-daemon.socket
+  - avahi-daemon.service
+hardening_services_mask:
+  - telnet.socket
+  - rsh.socket
+hardening_packages_absent:
+  - telnet-server
+  - tftp-server
+
+# --- firewalld ---
+hardening_firewalld_zone: "public"
+hardening_firewalld_services:
+  - ssh
+# Standardzone auf die (restriktive) Zielzone setzen? Aussperr-Risiko: bewusst opt-in.
+hardening_firewalld_set_default_zone: false

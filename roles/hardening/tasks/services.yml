@@ -1,0 +1,21 @@
+---
+- name: Nicht benoetigte Dienste deaktivieren und stoppen
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: false
+    state: stopped
+  loop: "{{ hardening_services_disable }}"
+  register: hardening_disable_result
+  failed_when:
+    - hardening_disable_result is failed
+    - "'Could not find' not in (hardening_disable_result.msg | default(''))"
+
+- name: Unsichere Dienste maskieren
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    masked: true
+  loop: "{{ hardening_services_mask }}"
+  register: hardening_mask_result
+  failed_when:
+    - hardening_mask_result is failed
+    - "'Could not find' not in (hardening_mask_result.msg | default(''))"

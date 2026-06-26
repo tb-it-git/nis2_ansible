@@ -1,0 +1,13 @@
+# {{ ansible_managed }}
+# NIS2 / Paragraph 30 BSIG - automatische Sicherheitsupdates (roles/patch_management)
+[commands]
+upgrade_type = {{ patch_management_automatic_upgrade_type }}
+download_updates = {{ patch_management_automatic_download | ternary('yes', 'no') }}
+apply_updates = {{ patch_management_automatic_apply | ternary('yes', 'no') }}
+random_sleep = {{ patch_management_automatic_random_sleep }}
+
+[emitters]
+emit_via = {{ patch_management_automatic_emit_via }}
+
+[base]
+excludepkgs = {{ patch_management_automatic_excludepkgs | join(',') }}

@@ -1,0 +1,16 @@
+---
+- name: NIS2-Grundabsicherung (RHEL 9/10)
+  hosts: hardening_targets
+  become: true
+  roles:
+    - role: hardening
+    - role: patch_management
+      tags: [patching]
+    - role: iam
+      tags: [iam]
+    - role: logging_monitoring
+      tags: [logging, monitoring]
+    - role: backup
+      tags: [backup]
+    - role: encryption
+      tags: [encryption, crypto]

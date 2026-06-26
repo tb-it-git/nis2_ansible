@@ -1,0 +1,19 @@
+---
+galaxy_info:
+  role_name: encryption
+  author: tb-it.eu
+  description: NIS2-orientierte Verschluesselung (Krypto-Policy, NBDE-Tooling) fuer RHEL 9/10
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+        - "10"
+  galaxy_tags:
+    - security
+    - encryption
+    - crypto
+    - nis2
+    - rhel
+dependencies: []

@@ -1,0 +1,34 @@
+---
+- name: Firewalld installieren
+  ansible.builtin.dnf:
+    name: firewalld
+    state: present
+
+- name: Firewalld aktivieren und starten
+  ansible.builtin.systemd_service:
+    name: firewalld
+    enabled: true
+    state: started
+
+- name: Benoetigte Dienste in der Zielzone erlauben
+  ansible.posix.firewalld:
+    zone: "{{ hardening_firewalld_zone }}"
+    service: "{{ item }}"
+    permanent: true
+    immediate: true
+    state: enabled
+  loop: "{{ hardening_firewalld_services }}"
+
+- name: Aktuelle Standardzone ermitteln
+  ansible.builtin.command: firewall-cmd --get-default-zone
+  register: hardening_current_zone
+  changed_when: false
+  when: hardening_firewalld_set_default_zone | bool
+
+- name: Standardzone setzen (opt-in, Aussperr-Risiko beachten)
+  ansible.builtin.command: "firewall-cmd --set-default-zone={{ hardening_firewalld_zone }}"
+  register: hardening_set_zone
+  changed_when: "'success' in hardening_set_zone.stdout"
+  when:
+    - hardening_firewalld_set_default_zone | bool
+    - hardening_current_zone.stdout | default('') != hardening_firewalld_zone

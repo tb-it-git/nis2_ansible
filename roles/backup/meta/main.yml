@@ -1,0 +1,19 @@
+---
+galaxy_info:
+  role_name: backup
+  author: tb-it.eu
+  description: NIS2-orientierte ransomware-resistente Sicherung mit Restic (RHEL 9/10)
+  license: MIT
+  min_ansible_version: "2.15"
+  platforms:
+    - name: EL
+      versions:
+        - "9"
+        - "10"
+  galaxy_tags:
+    - security
+    - backup
+    - restic
+    - nis2
+    - rhel
+dependencies: []

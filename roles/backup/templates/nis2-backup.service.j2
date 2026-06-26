@@ -1,0 +1,9 @@
+# {{ ansible_managed }}
+[Unit]
+Description=NIS2 Restic backup
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/nis2-backup.sh

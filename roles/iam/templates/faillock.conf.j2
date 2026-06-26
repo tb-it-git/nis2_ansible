@@ -1,0 +1,5 @@
+# {{ ansible_managed }}
+# NIS2 / Paragraph 30 BSIG - Kontosperre nach Fehlversuchen (roles/iam)
+deny = {{ iam_faillock_deny }}
+unlock_time = {{ iam_faillock_unlock_time }}
+fail_interval = {{ iam_faillock_fail_interval }}

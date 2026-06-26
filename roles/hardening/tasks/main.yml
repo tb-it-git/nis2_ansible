@@ -1,0 +1,24 @@
+---
+- name: Unsichere/ueberfluessige Pakete entfernen
+  ansible.builtin.import_tasks: packages.yml
+  tags: [packages]
+
+- name: SSH-Haertung
+  ansible.builtin.import_tasks: sshd.yml
+  tags: [sshd]
+
+- name: Kernel-/sysctl-Haertung
+  ansible.builtin.import_tasks: sysctl.yml
+  tags: [sysctl]
+
+- name: SELinux erzwingen
+  ansible.builtin.import_tasks: selinux.yml
+  tags: [selinux]
+
+- name: Dienste minimieren
+  ansible.builtin.import_tasks: services.yml
+  tags: [services]
+
+- name: Host-Firewall (firewalld)
+  ansible.builtin.import_tasks: firewalld.yml
+  tags: [firewalld]

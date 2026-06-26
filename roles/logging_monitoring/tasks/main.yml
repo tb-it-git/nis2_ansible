@@ -1,0 +1,95 @@
+---
+# --- journald ---
+- name: Journald-Drop-in-Verzeichnis sicherstellen
+  ansible.builtin.file:
+    path: /etc/systemd/journald.conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Persistentes Journal-Verzeichnis anlegen
+  ansible.builtin.file:
+    path: /var/log/journal
+    state: directory
+    owner: root
+    group: systemd-journal
+    mode: "2755"
+  when: logging_monitoring_journald_storage == "persistent"
+
+- name: Journald konfigurieren
+  ansible.builtin.template:
+    src: journald-nis2.conf.j2
+    dest: /etc/systemd/journald.conf.d/90-nis2.conf
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart journald
+
+# --- auditd ---
+- name: Audit-Paket installieren
+  ansible.builtin.dnf:
+    name: audit
+    state: present
+
+- name: STIG-Beispielregeln nach rules.d kopieren
+  ansible.builtin.copy:
+    src: "/usr/share/audit/sample-rules/{{ item }}"
+    dest: "/etc/audit/rules.d/{{ item }}"
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0640"
+  loop: "{{ logging_monitoring_auditd_sample_rules }}"
+  notify: Load audit rules
+
+- name: Immutable-Finalize-Regel ausbringen (Produktion)
+  ansible.builtin.copy:
+    src: /usr/share/audit/sample-rules/99-finalize.rules
+    dest: /etc/audit/rules.d/99-finalize.rules
+    remote_src: true
+    owner: root
+    group: root
+    mode: "0640"
+  when: logging_monitoring_auditd_immutable | bool
+  notify: Load audit rules
+
+- name: Auditd aktivieren
+  ansible.builtin.systemd_service:
+    name: auditd
+    enabled: true
+    state: started
+
+# --- node_exporter ---
+- name: EPEL bereitstellen (fuer node_exporter)
+  ansible.builtin.dnf:
+    name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
+    state: present
+    disable_gpg_check: true
+  when:
+    - logging_monitoring_node_exporter_enabled | bool
+    - logging_monitoring_node_exporter_install_epel | bool
+
+- name: Node-Exporter installieren
+  ansible.builtin.dnf:
+    name: "{{ logging_monitoring_node_exporter_package }}"
+    state: present
+  when: logging_monitoring_node_exporter_enabled | bool
+
+- name: Node-Exporter aktivieren
+  ansible.builtin.systemd_service:
+    name: "{{ logging_monitoring_node_exporter_service }}"
+    enabled: true
+    state: started
+  when: logging_monitoring_node_exporter_enabled | bool
+
+# --- zentrale Log-Weiterleitung (optional) ---
+- name: Rsyslog-Weiterleitung konfigurieren
+  ansible.builtin.template:
+    src: rsyslog-forward.conf.j2
+    dest: /etc/rsyslog.d/10-nis2-forward.conf
+    owner: root
+    group: root
+    mode: "0644"
+  when: logging_monitoring_rsyslog_forward_enabled | bool
+  notify: Restart rsyslog

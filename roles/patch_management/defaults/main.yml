@@ -1,0 +1,22 @@
+---
+# roles/patch_management/defaults/main.yml
+# Automatisches Patch-/Schwachstellenmanagement (RHEL 9/10). Ueberschreibbar.
+
+# --- dnf-automatic (/etc/dnf/automatic.conf) ---
+patch_management_automatic_upgrade_type: "security"   # security | default
+patch_management_automatic_download: true
+patch_management_automatic_apply: true
+patch_management_automatic_random_sleep: 3600
+patch_management_automatic_emit_via: "stdio"          # stdio | email | motd | command
+patch_management_automatic_excludepkgs:
+  - "kernel*"
+# dnf-automatic.timer folgt der Konfiguration. Alternativ funktionsspezifische
+# Timer (z. B. dnf-automatic-notifyonly.timer) zum stufenweisen Einstieg.
+patch_management_automatic_timer: "dnf-automatic.timer"
+
+# --- optionaler woechentlicher OVAL-Schwachstellenscan ---
+patch_management_oval_scan_enabled: true
+patch_management_oval_report_dir: "/var/log/compliance"
+patch_management_oval_oncalendar: "Sun *-*-* 03:00:00"
+# Basis-URL der Red-Hat-OVAL-Daten; RHEL-Version wird im Skript ergaenzt.
+patch_management_oval_base_url: "https://www.redhat.com/security/data/oval/v2"
