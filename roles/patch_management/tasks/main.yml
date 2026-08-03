@@ -41,7 +41,7 @@
     - name: OVAL-Scan-Skript ausbringen
       ansible.builtin.template:
         src: nis2-oval-scan.sh.j2
-        dest: /usr/local/sbin/nis2-oval-scan.sh
+        dest: /usr/local/bin/nis2-oval-scan.sh
         owner: root
         group: root
         mode: "0750"
