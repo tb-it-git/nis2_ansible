@@ -1,24 +1,39 @@
 #!/bin/bash
 # {{ ansible_managed }}
-# NIS2 / Paragraph 30 BSIG - woechentlicher OVAL-Schwachstellenscan
+# NIS2 / Paragraph 30 BSIG - woechentlicher Schwachstellen-Scan
+# RHEL 8/9: OVAL-Scan gegen Red-Hat-Definitionen.
+# RHEL 10+: kein OVAL mehr (Red Hat: CSAF/VEX) -> Report offener
+#           Sicherheits-Errata per dnf updateinfo.
 set -euo pipefail
 
 REPORT_DIR="{{ patch_management_oval_report_dir }}"
 MAJOR="{{ ansible_distribution_major_version }}"
-URL="{{ patch_management_oval_base_url }}/RHEL${MAJOR}/rhel-${MAJOR}.oval.xml.bz2"
 DATE="$(date +%Y%m%d)"
 HOST="$(hostname -s)"
-OVAL="${REPORT_DIR}/rhel-oval.xml"
 
 mkdir -p "$REPORT_DIR"
-curl -fsSL "$URL" | bzip2 -d > "$OVAL"
 
-# oscap liefert Exit != 0, wenn Verwundbarkeiten gefunden werden -> nicht abbrechen
-oscap oval eval \
-  --results "${REPORT_DIR}/${HOST}-${DATE}-oval.xml" \
-  --report  "${REPORT_DIR}/${HOST}-${DATE}-oval.html" \
-  "$OVAL" || true
+if [ "$MAJOR" -le 9 ]; then
+  URL="{{ patch_management_oval_base_url }}/RHEL${MAJOR}/rhel-${MAJOR}.oval.xml.bz2"
+  OVAL="${REPORT_DIR}/rhel-oval.xml"
+  curl -fsSL "$URL" | bzip2 -d > "$OVAL"
+
+  # oscap liefert Exit != 0, wenn Verwundbarkeiten gefunden werden -> nicht abbrechen
+  oscap oval eval \
+    --results "${REPORT_DIR}/${HOST}-${DATE}-oval.xml" \
+    --report  "${REPORT_DIR}/${HOST}-${DATE}-oval.html" \
+    "$OVAL" || true
+else
+  # Bewusst ohne '|| true': schlaegt dnf fehl, soll der Timer sichtbar fehlschlagen.
+  REPORT="${REPORT_DIR}/${HOST}-${DATE}-updateinfo.txt"
+  {
+    echo "== Offene Sicherheits-Errata ($(date -Is), ${HOST}, RHEL ${MAJOR}) =="
+    dnf -q --refresh updateinfo summary security
+    echo
+    dnf -q updateinfo list security
+  } > "$REPORT"
+fi
 
 # alte Reports nach 90 Tagen entfernen
-find "$REPORT_DIR" -name '*-oval.*' -mtime +90 -delete
-logger "NIS2 patch_management: OVAL-Scan abgeschlossen (${HOST} ${DATE})"
+find "$REPORT_DIR" \( -name '*-oval.*' -o -name '*-updateinfo.txt' \) -mtime +90 -delete
+logger "NIS2 patch_management: Schwachstellen-Scan abgeschlossen (${HOST} ${DATE})"
