@@ -18,13 +18,20 @@ logging_monitoring_auditd_sample_rules:
 logging_monitoring_auditd_immutable: false
 
 # --- node_exporter (Prometheus) ---
+# Nicht in EPEL paketiert -> offizielles Upstream-Release, versionsgepinnt
+# und per SHA256 verifiziert (Lieferkette, vgl. Kapitel 11).
 logging_monitoring_node_exporter_enabled: true
-logging_monitoring_node_exporter_package: "golang-github-prometheus-node-exporter"
-logging_monitoring_node_exporter_service: "node_exporter"
-# EPEL bereitstellen (node_exporter ist nicht in den RHEL-Basis-Repos)
-logging_monitoring_node_exporter_install_epel: false
+logging_monitoring_node_exporter_version: "1.12.1"
+logging_monitoring_node_exporter_arch_map:
+  x86_64: "amd64"
+  aarch64: "arm64"
+logging_monitoring_node_exporter_checksums:
+  amd64: "sha256:b51d8a76aa2a9156a55d501aca6276fae09e262259a5e4e831d2c2222f084e63"
+  arm64: "sha256:ad35b605f9954b9f1ffddf5ba054bdc5a98d790b9eae5291e1eeb83f1ecbd0e7"
+logging_monitoring_node_exporter_textfile_dir: "/var/lib/node_exporter/textfile_collector"
 
 # --- zentrale Log-Weiterleitung (optional) ---
 logging_monitoring_rsyslog_forward_enabled: false
 logging_monitoring_rsyslog_target: "logcollector.example.com"
-logging_monitoring_rsyslog_port: 6514
+logging_monitoring_rsyslog_port: 514
+

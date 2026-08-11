@@ -32,6 +32,13 @@
     name: audit
     state: present
 
+- name: Audit-Status ermitteln (Immutable-Erkennung)
+  ansible.builtin.command: auditctl -s
+  register: logging_monitoring_audit_status
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
 - name: STIG-Beispielregeln nach rules.d kopieren
   ansible.builtin.copy:
     src: "/usr/share/audit/sample-rules/{{ item }}"
@@ -41,18 +48,33 @@
     group: root
     mode: "0640"
   loop: "{{ logging_monitoring_auditd_sample_rules }}"
-  notify: Load audit rules
+  notify:
+    - Load audit rules
+    - Audit-Reboot-Hinweis
 
 - name: Immutable-Finalize-Regel ausbringen (Produktion)
   ansible.builtin.copy:
-    src: /usr/share/audit/sample-rules/99-finalize.rules
+    content: |
+      ## NIS2 (roles/logging_monitoring): Audit-Regelbestand sperren.
+      ## Achtung: Aenderungen an den Regeln erfordern danach einen Reboot.
+      -e 2
     dest: /etc/audit/rules.d/99-finalize.rules
-    remote_src: true
     owner: root
     group: root
     mode: "0640"
   when: logging_monitoring_auditd_immutable | bool
-  notify: Load audit rules
+  notify:
+    - Load audit rules
+    - Audit-Reboot-Hinweis
+
+- name: Finalize-Regel entfernen, wenn Immutable deaktiviert
+  ansible.builtin.file:
+    path: /etc/audit/rules.d/99-finalize.rules
+    state: absent
+  when: not logging_monitoring_auditd_immutable | bool
+  notify:
+    - Load audit rules
+    - Audit-Reboot-Hinweis
 
 - name: Auditd aktivieren
   ansible.builtin.systemd_service:
@@ -60,28 +82,66 @@
     enabled: true
     state: started
 
-# --- node_exporter ---
-- name: EPEL bereitstellen (fuer node_exporter)
-  ansible.builtin.dnf:
-    name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
-    state: present
-    disable_gpg_check: true
-  when:
-    - logging_monitoring_node_exporter_enabled | bool
-    - logging_monitoring_node_exporter_install_epel | bool
-
-- name: Node-Exporter installieren
-  ansible.builtin.dnf:
-    name: "{{ logging_monitoring_node_exporter_package }}"
-    state: present
+- name: Node-Exporter installieren und aktivieren (Upstream-Release)
   when: logging_monitoring_node_exporter_enabled | bool
+  vars:
+    logging_monitoring_ne_arch: "{{ logging_monitoring_node_exporter_arch_map[ansible_architecture] }}"
+    logging_monitoring_ne_dir: "node_exporter-{{ logging_monitoring_node_exporter_version }}.linux-{{ logging_monitoring_ne_arch }}"
+  block:
+    - name: Systembenutzer node_exporter anlegen
+      ansible.builtin.user:
+        name: node_exporter
+        system: true
+        shell: /sbin/nologin
+        create_home: false
 
-- name: Node-Exporter aktivieren
-  ansible.builtin.systemd_service:
-    name: "{{ logging_monitoring_node_exporter_service }}"
-    enabled: true
-    state: started
-  when: logging_monitoring_node_exporter_enabled | bool
+    - name: Textfile-Collector-Verzeichnis anlegen
+      ansible.builtin.file:
+        path: "{{ logging_monitoring_node_exporter_textfile_dir }}"
+        state: directory
+        owner: root
+        group: root
+        mode: "0755"
+
+    - name: Release-Archiv laden (SHA256-verifiziert)
+      ansible.builtin.get_url:
+        url: "https://github.com/prometheus/node_exporter/releases/download/v{{ logging_monitoring_node_exporter_version }}/{{ logging_monitoring_ne_dir }}.tar.gz"
+        dest: "/usr/local/src/{{ logging_monitoring_ne_dir }}.tar.gz"
+        checksum: "{{ logging_monitoring_node_exporter_checksums[logging_monitoring_ne_arch] }}"
+        mode: "0644"
+
+    - name: Release-Archiv entpacken
+      ansible.builtin.unarchive:
+        src: "/usr/local/src/{{ logging_monitoring_ne_dir }}.tar.gz"
+        dest: /usr/local/src
+        remote_src: true
+        creates: "/usr/local/src/{{ logging_monitoring_ne_dir }}/node_exporter"
+
+    - name: Binary nach /usr/local/bin installieren
+      ansible.builtin.copy:
+        src: "/usr/local/src/{{ logging_monitoring_ne_dir }}/node_exporter"
+        dest: /usr/local/bin/node_exporter
+        remote_src: true
+        owner: root
+        group: root
+        mode: "0755"
+      notify: Restart node_exporter
+
+    - name: Node-Exporter-Unit ausbringen
+      ansible.builtin.template:
+        src: node_exporter.service.j2
+        dest: /etc/systemd/system/node_exporter.service
+        owner: root
+        group: root
+        mode: "0644"
+      notify: Restart node_exporter
+
+    - name: Node-Exporter aktivieren
+      ansible.builtin.systemd_service:
+        name: node_exporter
+        enabled: true
+        state: started
+        daemon_reload: true
 
 # --- zentrale Log-Weiterleitung (optional) ---
 - name: Rsyslog-Weiterleitung konfigurieren
