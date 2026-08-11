@@ -21,6 +21,13 @@
   # Hinweis: Nach einem Policy-Wechsel wird ein Reboot empfohlen, damit alle
   # laufenden Dienste die neue Krypto-Policy uebernehmen.
 
+- name: Reboot-Hinweis nach Policy-Wechsel
+  ansible.builtin.debug:
+    msg: >-
+      Krypto-Policy geaendert — Reboot einplanen, damit alle laufenden
+      Dienste die neue Policy uebernehmen.
+  when: encryption_set_policy is changed
+
 - name: NBDE-/LUKS-Tooling installieren
   ansible.builtin.dnf:
     name: "{{ encryption_nbde_packages }}"

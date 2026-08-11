@@ -4,7 +4,9 @@
 # Die LUKS-Einrichtung selbst ist datentraegerspezifisch/destruktiv und NICHT Teil dieser Rolle.
 
 # Systemweite Krypto-Policy: DEFAULT | FUTURE | LEGACY | FIPS
-# oder mit Subpolicy, z. B. "DEFAULT:NO-SHA1:NO-CBC" bzw. "DEFAULT:PQ" (ab RHEL 9.7)
+# oder mit Subpolicy, z. B. "DEFAULT:NO-SHA1" bzw. "DEFAULT:PQ" (ab RHEL 9.7).
+# Achtung: NO-CBC wird NICHT mitgeliefert — dafuer die eigene Subpolicy nutzen:
+# encryption_custom_module_enabled: true  +  encryption_crypto_policy: "DEFAULT:NIS2-HARDENED"
 encryption_crypto_policy: "DEFAULT"
 
 # Optionale eigene Subpolicy (.pmod) ausbringen
