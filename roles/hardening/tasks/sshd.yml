@@ -1,4 +1,21 @@
 ---
+- name: SSH-Zugangsgruppe ermitteln (Aussperr-Schutz)
+  ansible.builtin.getent:
+    database: group
+    key: "{{ hardening_ssh_allow_group }}"
+  failed_when: false
+
+- name: Abbrechen, wenn die SSH-Gruppe fehlt oder leer ist
+  ansible.builtin.assert:
+    that:
+      - hardening_ssh_allow_group in (ansible_facts.getent_group | default({}))
+      - (ansible_facts.getent_group[hardening_ssh_allow_group][2] | default('')) | length > 0
+    fail_msg: >-
+      Gruppe '{{ hardening_ssh_allow_group }}' existiert nicht oder hat keine
+      Mitglieder — AllowGroups wuerde alle neuen SSH-Anmeldungen sperren.
+      Gruppe anlegen, Admin-Benutzer aufnehmen und erneut ausfuehren.
+    quiet: true
+
 - name: SSH-Drop-in-Verzeichnis sicherstellen
   ansible.builtin.file:
     path: /etc/ssh/sshd_config.d
