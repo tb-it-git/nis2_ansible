@@ -18,5 +18,6 @@ patch_management_automatic_timer: "dnf-automatic.timer"
 patch_management_oval_scan_enabled: true
 patch_management_oval_report_dir: "/var/log/compliance"
 patch_management_oval_oncalendar: "Sun *-*-* 03:00:00"
-# Basis-URL der Red-Hat-OVAL-Daten; RHEL-Version wird im Skript ergaenzt.
+# Basis-URL der Red-Hat-OVAL-Daten (nur RHEL <= 9; OVAL v2 ist im Maintenance
+# Mode). Auf RHEL 10+ erzeugt das Skript stattdessen einen updateinfo-Report.
 patch_management_oval_base_url: "https://www.redhat.com/security/data/oval/v2"
