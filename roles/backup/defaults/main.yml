@@ -5,6 +5,9 @@
 
 backup_package: "restic"        # aus EPEL
 
+# EPEL bereitstellen (restic ist nicht in den RHEL-Basis-Repos)
+backup_install_epel: false
+
 # Was wird gesichert
 backup_paths:
   - /etc

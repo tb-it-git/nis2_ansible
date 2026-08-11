@@ -6,6 +6,15 @@ set -euo pipefail
 # shellcheck source=/dev/null
 source /etc/restic/restic.env
 
+# Fail-fast: Repository muss initialisiert und erreichbar sein.
+# Bewusst KEIN automatisches 'restic init' (Tippfehler in der Repo-URL wuerde
+# sonst still ein leeres Zweit-Repo anlegen).
+if ! restic cat config >/dev/null 2>&1; then
+  echo "FEHLER: Restic-Repository nicht initialisiert/erreichbar: ${RESTIC_REPOSITORY}" >&2
+  echo "Einmalig manuell ausfuehren: source /etc/restic/restic.env && restic init" >&2
+  exit 1
+fi
+
 # Verwaiste Locks vorheriger Laeufe entfernen
 restic unlock || true
 
