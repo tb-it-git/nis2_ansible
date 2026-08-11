@@ -1,6 +1,6 @@
 # NIS2 auf Linux-Systemen — Begleit-Playbooks
 
-Ansible-Automatisierung zum eBook **„NIS2 auf Linux-Systemen"**.
+Ansible-Automatisierung zum eBook **„Vom Paragrafen zum Playbook: NIS2 auf RHEL umsetzen"**.
 Dieses ZIP wächst kapitelweise. Aktuell enthalten:
 
 - `roles/hardening` — Kapitel 4: System-Hardening (RHEL 9/10)
@@ -53,8 +53,7 @@ Tags: `packages`, `sshd`, `sysctl`, `selinux`, `services`, `firewalld`
 - Konfiguriert `dnf-automatic` (Standard: nur Sicherheitsupdates, Kernel ausgenommen)
   und aktiviert `dnf-automatic.timer`.
 - Installiert `dnf-utils` für `needs-restarting`.
-- Richtet einen wöchentlichen OVAL-Schwachstellenscan ein
-  (`/var/log/compliance`), gesteuert über `patch_management_oval_scan_enabled`.
+- Richtet einen wöchentlichen Schwachstellen-Scan ein (/var/log/compliance): auf RHEL 8/9 per OVAL, auf RHEL 10 als updateinfo-Report — Red Hat publiziert für RHEL 10 keine OVAL-Daten mehr (Nachfolger CSAF/VEX; auswertbar z. B. mit Grype/Trivy, siehe Kapitel 5.4/11).
 - Die OVAL-URL wird automatisch aus der RHEL-Hauptversion abgeleitet.
 
 Wichtige Variablen (siehe `roles/patch_management/defaults/main.yml`):
@@ -69,6 +68,7 @@ Wichtige Variablen (siehe `roles/patch_management/defaults/main.yml`):
 - Konfiguriert Kontosperre (faillock) und Mindest-Passwortqualität (pwquality).
 - Bringt ein mit `visudo` validiertes sudo-Drop-in für die Admin-Gruppe aus.
 - **Nicht** enthalten: der Domänenbeitritt (`ipa-client-install` bzw. LDAP-Anbindung) — bewusst umgebungsspezifisch.
+Hinweis: Mitglieder von ssh-admins (sudo) müssen zusätzlich in ssh-users (SSH-Zugang, Rolle hardening) sein — zwei getrennte Gruppen sind Absicht (Login ≠ Privilegien)
 
 Wichtige Variablen (siehe `roles/iam/defaults/main.yml`):
 `iam_authselect_features`, `iam_sudo_admin_group`, `iam_faillock_deny`,
@@ -95,6 +95,7 @@ Tags: `backup`
 - Schreibt nach Erfolg eine Prometheus-Textfile-Metrik (`restic_backup_last_success_timestamp_seconds`) für die Überwachung aus Kapitel 7.
 - **Geheimnisse per Ansible Vault setzen:** `backup_password` und ggf. `backup_env` (z. B. `AWS_ACCESS_KEY_ID`/`AWS_SECRET_ACCESS_KEY` für S3/B2).
 - Für **Append-only-Repos** `backup_prune_enabled: false` setzen — `forget`/`prune` laufen dann auf dem gesicherten Backup-Host, nicht auf dem Client.
+- EPEL wird (opt-in, backup_install_epel: true) mit importiertem GPG-Schlüssel eingerichtet — restic kommt aus EPEL. Das Repository einmalig manuell initialisieren (restic init); das Skript bricht andernfalls mit klarer Meldung ab.
 
 Wichtige Variablen (siehe `roles/backup/defaults/main.yml`):
 `backup_repository`, `backup_paths`, `backup_keep_*`, `backup_oncalendar`,
@@ -104,7 +105,7 @@ Wichtige Variablen (siehe `roles/backup/defaults/main.yml`):
 
 Tags: `encryption`, `crypto`
 
-- Setzt die systemweite Krypto-Policy idempotent (`encryption_crypto_policy`, z. B. `FUTURE`, `DEFAULT:NO-SHA1:NO-CBC`, `DEFAULT:PQ`).
+- Setzt die systemweite Krypto-Policy idempotent (`encryption_crypto_policy`, z. B. `FUTURE`, `DEFAULT:NO-SHA1`, `DEFAULT:PQ`, `DEFAULT:NIS2-HARDENED`).
 - Kann optional eine eigene Subpolicy (`.pmod`) ausbringen (`encryption_custom_module_enabled`).
 - Installiert optional das NBDE-/LUKS-Tooling (`encryption_install_nbde_tools`).
 - **Nicht** enthalten: die LUKS-Einrichtung selbst — datenträgerspezifisch und destruktiv, daher manuell (siehe Kapitel 9).
