@@ -1,0 +1,16 @@
+# {{ ansible_managed }}
+# NIS2 / Paragraph 30 BSIG - Systemmetriken (roles/logging_monitoring)
+[Unit]
+Description=Prometheus Node Exporter
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+User=node_exporter
+Group=node_exporter
+ExecStart=/usr/local/bin/node_exporter \
+  --collector.textfile.directory={{ logging_monitoring_node_exporter_textfile_dir }}
+Restart=on-failure
+
+[Install]
+WantedBy=multi-user.target
