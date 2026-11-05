@@ -1,0 +1,9 @@
+Name: NIS2 - Kontosperre pruefen und nach Erfolg zuruecksetzen (pam_faillock)
+Default: yes
+Priority: 1024
+Auth-Type: Primary
+Auth:
+	requisite pam_faillock.so preauth
+Account-Type: Primary
+Account:
+	required pam_faillock.so

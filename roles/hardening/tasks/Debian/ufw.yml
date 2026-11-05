@@ -1,0 +1,41 @@
+---
+# Ubuntu-Gegenstueck zu firewalld. Anders als firewalld ist ufw auf Ubuntu
+# standardmaessig inaktiv — das Aktivieren sperrt alles, was nicht freigegeben ist.
+- name: Abbrechen, wenn keine ufw-Freigaben definiert sind (Aussperr-Schutz)
+  ansible.builtin.assert:
+    that: hardening_ufw_rules | length > 0
+    fail_msg: >-
+      hardening_ufw_rules ist leer — ufw wuerde nach dem Aktivieren auch SSH sperren.
+    quiet: true
+
+- name: Ufw installieren
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+
+- name: Benoetigte Dienste freigeben (vor dem Aktivieren)
+  community.general.ufw:
+    rule: "{{ item.rule | default('allow') }}"
+    name: "{{ item.name | default(omit) }}"
+    port: "{{ item.port | default(omit) }}"
+    proto: "{{ item.proto | default(omit) }}"
+    from_ip: "{{ item.from_ip | default(omit) }}"
+  loop: "{{ hardening_ufw_rules }}"
+
+- name: Standardrichtlinie fuer eingehenden Verkehr setzen
+  community.general.ufw:
+    direction: incoming
+    default: "{{ hardening_ufw_default_incoming }}"
+
+- name: Ufw-Protokollierung setzen
+  community.general.ufw:
+    logging: "{{ hardening_ufw_logging }}"
+
+- name: Ufw aktivieren
+  community.general.ufw:
+    state: enabled
+
+- name: Ufw-Dienst beim Systemstart aktivieren
+  ansible.builtin.systemd_service:
+    name: ufw
+    enabled: true

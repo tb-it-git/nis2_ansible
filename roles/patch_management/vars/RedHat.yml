@@ -1,0 +1,6 @@
+---
+# Interne, distributionsspezifische Werte (RHEL 9/10).
+__patch_management_scan_packages:
+  - openscap-scanner
+  - bzip2
+__patch_management_scan_script: "nis2-oval-scan.sh.j2"

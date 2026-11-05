@@ -1,0 +1,8 @@
+---
+# Interne, distributionsspezifische Werte (RHEL 9/10). Nicht ueberschreiben —
+# dafuer die Variablen aus defaults/main.yml verwenden.
+__hardening_packages_absent:
+  - telnet-server
+  - tftp-server
+__hardening_ssh_service: "sshd"
+__hardening_ssh_dropin: "50-nis2-hardening.conf"

@@ -2,7 +2,7 @@
 galaxy_info:
   role_name: hardening
   author: tb-it.eu
-  description: NIS2-orientierte Basis-Haertung fuer RHEL 9/10 (Paragraph 30 BSIG)
+  description: NIS2-orientierte Basis-Haertung fuer RHEL 9/10 und Ubuntu 24.04/26.04 (Paragraph 30 BSIG)
   license: MIT
   min_ansible_version: "2.15"
   platforms:
@@ -10,9 +10,14 @@ galaxy_info:
       versions:
         - "9"
         - "10"
+    - name: Ubuntu
+      versions:
+        - noble
+        - resolute
   galaxy_tags:
     - security
     - hardening
     - nis2
     - rhel
+    - ubuntu
 dependencies: []

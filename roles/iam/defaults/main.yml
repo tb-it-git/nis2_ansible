@@ -1,13 +1,10 @@
 ---
 # roles/iam/defaults/main.yml
-# Zentrale Auth-Mechanik, Kontosperre, Passwortpolitik und sudo (RHEL 9/10).
-# Der Domaenenbeitritt (ipa-client-install / LDAP) ist NICHT Teil dieser Rolle.
+# Zentrale Auth-Mechanik, Kontosperre, Passwortpolitik und sudo (RHEL 9/10, Ubuntu 24.04/26.04).
+# Der Domaenenbeitritt (ipa-client-install / realm join / LDAP) ist NICHT Teil dieser Rolle.
 
-iam_packages:
-  - sssd
-  - oddjob-mkhomedir
-  - authselect
-  - libsss_sudo
+# Paketnamen sind distributionsspezifisch: Standard aus vars/<OS-Familie>.yml
+iam_packages: "{{ __iam_packages }}"
 
 # authselect-Profil und Features
 iam_authselect_profile: "sssd"
@@ -15,6 +12,13 @@ iam_authselect_features:
   - "with-mkhomedir"
   - "with-faillock"
   - "with-sudo"
+
+# Ubuntu: pam-auth-update-Profile (Gegenstueck zu den authselect-Features).
+# sss und pwquality aktivieren die Pakete selbst; sudo via SSSD ueber nsswitch.
+iam_pam_profiles:
+  - "mkhomedir"
+  - "faillock"
+  - "faillock_notify"
 
 # Kontosperre nach Fehlversuchen (/etc/security/faillock.conf)
 iam_faillock_deny: 5
@@ -31,4 +35,6 @@ iam_pwquality_lcredit: -1
 # sudo (/etc/sudoers.d/10-nis2-admins)
 iam_sudo_admin_group: "ssh-admins"
 iam_sudo_use_pty: true
+# Hinweis: sudo-rs (Standard ab Ubuntu 26.04) unterstuetzt kein logfile -> wird dort
+# weggelassen; Protokollierung erfolgt ueber syslog/journald.
 iam_sudo_logfile: "/var/log/sudo.log"

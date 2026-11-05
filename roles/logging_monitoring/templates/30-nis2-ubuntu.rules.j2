@@ -1,0 +1,83 @@
+## {{ ansible_managed }}
+## NIS2 / Paragraph 30 BSIG - Audit-Regeln fuer Ubuntu (roles/logging_monitoring)
+## Angelehnt an 30-stig.rules/31-privileged.rules. Ubuntu liefert die Beispielregeln
+## nur unter /usr/share/doc aus — auf minimierten Systemen fehlen sie.
+## Puffer/Fehlermodus setzt bereits die Paketdatei rules.d/audit.rules.
+{% set x86 = ansible_architecture == "x86_64" %}
+
+## Zeitaenderungen
+-a always,exit -F arch=b64 -S adjtimex,settimeofday,clock_settime -F key=time-change
+{% if x86 %}
+-a always,exit -F arch=b32 -S adjtimex,settimeofday,clock_settime,stime -F key=time-change
+{% endif %}
+-w /etc/localtime -p wa -k time-change
+
+## Benutzer, Gruppen, Passwoerter
+-w /etc/group -p wa -k identity
+-w /etc/passwd -p wa -k identity
+-w /etc/gshadow -p wa -k identity
+-w /etc/shadow -p wa -k identity
+-w /etc/security/opasswd -p wa -k identity
+
+## Netzwerk-/Systemidentitaet
+-a always,exit -F arch=b64 -S sethostname,setdomainname -F key=system-locale
+-w /etc/issue -p wa -k system-locale
+-w /etc/issue.net -p wa -k system-locale
+-w /etc/hosts -p wa -k system-locale
+-w /etc/hostname -p wa -k system-locale
+
+## MAC-Policy (AppArmor)
+-w /etc/apparmor/ -p wa -k MAC-policy
+-w /etc/apparmor.d/ -p wa -k MAC-policy
+
+## Anmeldungen und Sitzungen
+-w /var/log/lastlog -p wa -k logins
+-w /var/run/utmp -p wa -k session
+-w /var/log/wtmp -p wa -k session
+-w /var/log/btmp -p wa -k session
+
+## Berechtigungsaenderungen (DAC)
+-a always,exit -F arch=b64 -S fchmod,fchmodat,fchown,fchownat,setxattr,lsetxattr,fsetxattr,removexattr,lremovexattr,fremovexattr -F auid>=1000 -F auid!=unset -F key=perm_mod
+{% if x86 %}
+-a always,exit -F arch=b64 -S chmod,chown,lchown -F auid>=1000 -F auid!=unset -F key=perm_mod
+-a always,exit -F arch=b32 -S chmod,fchmod,fchmodat,chown,fchown,fchownat,lchown,setxattr,lsetxattr,fsetxattr,removexattr,lremovexattr,fremovexattr -F auid>=1000 -F auid!=unset -F key=perm_mod
+{% endif %}
+
+## Erfolglose Dateizugriffe
+-a always,exit -F arch=b64 -S openat,truncate,ftruncate -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=access
+-a always,exit -F arch=b64 -S openat,truncate,ftruncate -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=access
+{% if x86 %}
+-a always,exit -F arch=b64 -S open,creat -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=access
+-a always,exit -F arch=b64 -S open,creat -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=access
+-a always,exit -F arch=b32 -S open,creat,openat,truncate,ftruncate -F exit=-EACCES -F auid>=1000 -F auid!=unset -F key=access
+-a always,exit -F arch=b32 -S open,creat,openat,truncate,ftruncate -F exit=-EPERM -F auid>=1000 -F auid!=unset -F key=access
+{% endif %}
+
+## Einhaengen von Dateisystemen
+-a always,exit -F arch=b64 -S mount -F auid>=1000 -F auid!=unset -F key=export
+{% if x86 %}
+-a always,exit -F arch=b32 -S mount -F auid>=1000 -F auid!=unset -F key=export
+{% endif %}
+
+## Loeschen/Umbenennen durch Benutzer
+-a always,exit -F arch=b64 -S unlinkat,renameat -F auid>=1000 -F auid!=unset -F key=delete
+{% if x86 %}
+-a always,exit -F arch=b64 -S unlink,rename -F auid>=1000 -F auid!=unset -F key=delete
+-a always,exit -F arch=b32 -S unlink,unlinkat,rename,renameat -F auid>=1000 -F auid!=unset -F key=delete
+{% endif %}
+
+## Administrative Rechte (sudoers)
+-w /etc/sudoers -p wa -k scope
+-w /etc/sudoers.d/ -p wa -k scope
+
+## Kernelmodule
+-a always,exit -F arch=b64 -S init_module,finit_module,delete_module -F key=modules
+{% if x86 %}
+-a always,exit -F arch=b32 -S init_module,finit_module,delete_module -F key=modules
+{% endif %}
+-w /usr/bin/kmod -p x -k modules
+
+## Privilegierte Befehle (setuid/setgid, beim Ausbringen ermittelt)
+{% for item in logging_monitoring_privileged_files %}
+-a always,exit -F path={{ item }} -F perm=x -F auid>=1000 -F auid!=unset -F key=privileged
+{% endfor %}

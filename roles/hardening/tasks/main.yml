@@ -1,4 +1,8 @@
 ---
+- name: Betriebssystemspezifische Variablen laden
+  ansible.builtin.include_vars: "{{ ansible_os_family }}.yml"
+  tags: [always]
+
 - name: Unsichere/ueberfluessige Pakete entfernen
   ansible.builtin.import_tasks: packages.yml
   tags: [packages]
@@ -11,14 +15,26 @@
   ansible.builtin.import_tasks: sysctl.yml
   tags: [sysctl]
 
-- name: SELinux erzwingen
-  ansible.builtin.import_tasks: selinux.yml
-  tags: [selinux]
+- name: SELinux erzwingen (RHEL)
+  ansible.builtin.import_tasks: RedHat/selinux.yml
+  when: ansible_os_family == "RedHat"
+  tags: [selinux, mac]
+
+- name: AppArmor sicherstellen (Ubuntu)
+  ansible.builtin.import_tasks: Debian/apparmor.yml
+  when: ansible_os_family == "Debian"
+  tags: [apparmor, mac]
 
 - name: Dienste minimieren
   ansible.builtin.import_tasks: services.yml
   tags: [services]
 
-- name: Host-Firewall (firewalld)
-  ansible.builtin.import_tasks: firewalld.yml
-  tags: [firewalld]
+- name: Host-Firewall (firewalld, RHEL)
+  ansible.builtin.import_tasks: RedHat/firewalld.yml
+  when: ansible_os_family == "RedHat"
+  tags: [firewalld, firewall]
+
+- name: Host-Firewall (ufw, Ubuntu)
+  ansible.builtin.import_tasks: Debian/ufw.yml
+  when: ansible_os_family == "Debian"
+  tags: [ufw, firewall]

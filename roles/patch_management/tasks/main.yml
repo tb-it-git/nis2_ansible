@@ -1,70 +1,15 @@
 ---
-- name: Patch-Werkzeuge installieren
-  ansible.builtin.dnf:
-    name:
-      - dnf-automatic
-      - dnf-utils
-    state: present
+- name: Betriebssystemspezifische Variablen laden
+  ansible.builtin.include_vars: "{{ ansible_os_family }}.yml"
 
-- name: Dnf-automatic konfigurieren
-  ansible.builtin.template:
-    src: automatic.conf.j2
-    dest: /etc/dnf/automatic.conf
-    owner: root
-    group: root
-    mode: "0644"
+- name: Automatische Sicherheitsupdates (dnf-automatic, RHEL)
+  ansible.builtin.import_tasks: RedHat.yml
+  when: ansible_os_family == "RedHat"
 
-- name: Automatic-Timer aktivieren und starten
-  ansible.builtin.systemd_service:
-    name: "{{ patch_management_automatic_timer }}"
-    enabled: true
-    state: started
+- name: Automatische Sicherheitsupdates (unattended-upgrades, Ubuntu)
+  ansible.builtin.import_tasks: Debian.yml
+  when: ansible_os_family == "Debian"
 
 - name: Woechentlichen OVAL-Schwachstellenscan einrichten
+  ansible.builtin.import_tasks: scan.yml
   when: patch_management_oval_scan_enabled | bool
-  block:
-    - name: Scanner-Pakete installieren
-      ansible.builtin.dnf:
-        name:
-          - openscap-scanner
-          - bzip2
-        state: present
-
-    - name: Report-Verzeichnis anlegen
-      ansible.builtin.file:
-        path: "{{ patch_management_oval_report_dir }}"
-        state: directory
-        owner: root
-        group: root
-        mode: "0750"
-
-    - name: OVAL-Scan-Skript ausbringen
-      ansible.builtin.template:
-        src: nis2-oval-scan.sh.j2
-        dest: /usr/local/bin/nis2-oval-scan.sh
-        owner: root
-        group: root
-        mode: "0750"
-
-    - name: OVAL-Scan-Service ausbringen
-      ansible.builtin.template:
-        src: nis2-oval-scan.service.j2
-        dest: /etc/systemd/system/nis2-oval-scan.service
-        owner: root
-        group: root
-        mode: "0644"
-
-    - name: OVAL-Scan-Timer ausbringen
-      ansible.builtin.template:
-        src: nis2-oval-scan.timer.j2
-        dest: /etc/systemd/system/nis2-oval-scan.timer
-        owner: root
-        group: root
-        mode: "0644"
-
-    - name: OVAL-Scan-Timer aktivieren und starten
-      ansible.builtin.systemd_service:
-        name: nis2-oval-scan.timer
-        enabled: true
-        state: started
-        daemon_reload: true

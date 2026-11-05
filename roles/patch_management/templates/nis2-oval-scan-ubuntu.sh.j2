@@ -1,0 +1,35 @@
+#!/bin/bash
+# {{ ansible_managed }}
+# NIS2 / Paragraph 30 BSIG - woechentlicher Schwachstellen-Scan (Ubuntu)
+# OVAL-Scan gegen die Canonical-USN-Definitionen des laufenden Releases,
+# ergaenzt um die Liste offener Paketaktualisierungen.
+set -euo pipefail
+
+REPORT_DIR="{{ patch_management_oval_report_dir }}"
+CODENAME="{{ ansible_distribution_release }}"
+DATE="$(date +%Y%m%d)"
+HOST="$(hostname -s)"
+
+mkdir -p "$REPORT_DIR"
+
+URL="{{ patch_management_oval_ubuntu_base_url }}/com.ubuntu.${CODENAME}.usn.oval.xml.bz2"
+OVAL="${REPORT_DIR}/ubuntu-oval.xml"
+curl -fsSL "$URL" | bzip2 -d > "$OVAL"
+
+# oscap liefert Exit != 0, wenn Verwundbarkeiten gefunden werden -> nicht abbrechen
+oscap oval eval \
+  --results "${REPORT_DIR}/${HOST}-${DATE}-oval.xml" \
+  --report  "${REPORT_DIR}/${HOST}-${DATE}-oval.html" \
+  "$OVAL" || true
+
+# Bewusst ohne '|| true': schlaegt apt fehl, soll der Timer sichtbar fehlschlagen.
+REPORT="${REPORT_DIR}/${HOST}-${DATE}-upgradable.txt"
+{
+  echo "== Offene Paketaktualisierungen ($(date -Is), ${HOST}, Ubuntu ${CODENAME}) =="
+  apt-get -qq update
+  apt list --upgradable 2>/dev/null
+} > "$REPORT"
+
+# alte Reports nach 90 Tagen entfernen
+find "$REPORT_DIR" \( -name '*-oval.*' -o -name '*-upgradable.txt' \) -mtime +90 -delete
+logger "NIS2 patch_management: Schwachstellen-Scan abgeschlossen (${HOST} ${DATE})"

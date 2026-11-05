@@ -1,7 +1,18 @@
 ---
-- name: NIS2-Grundabsicherung (RHEL 9/10)
+- name: NIS2-Grundabsicherung (RHEL 9/10, Ubuntu 24.04/26.04)
   hosts: hardening_targets
   become: true
+  pre_tasks:
+    - name: Abbrechen bei nicht unterstuetzter Plattform
+      ansible.builtin.assert:
+        that: >-
+          (ansible_os_family == "RedHat" and ansible_distribution_major_version in ["9", "10"])
+          or (ansible_distribution == "Ubuntu" and ansible_distribution_version in ["24.04", "26.04"])
+        fail_msg: >-
+          {{ ansible_distribution }} {{ ansible_distribution_version }} wird nicht unterstuetzt
+          (RHEL 9/10 bzw. kompatible, Ubuntu 24.04/26.04 LTS).
+        quiet: true
+      tags: [always]
   roles:
     - role: hardening
     - role: patch_management

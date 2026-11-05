@@ -1,0 +1,49 @@
+---
+# Ubuntu-Gegenstueck zu SELinux: AppArmor ist Standard und soll aktiv bleiben.
+- name: AppArmor-Pakete installieren
+  ansible.builtin.apt:
+    name:
+      - apparmor
+      - apparmor-utils
+    state: present
+
+- name: AppArmor-Kernelstatus ermitteln
+  ansible.builtin.command: aa-enabled
+  register: hardening_apparmor_enabled
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+# Ohne Kernel-Unterstuetzung (ConditionSecurity=apparmor) bliebe der Dienst inaktiv.
+- name: AppArmor-Dienst aktivieren und starten
+  ansible.builtin.systemd_service:
+    name: apparmor
+    enabled: true
+    state: "{{ 'started' if hardening_apparmor_enabled.stdout | default('') | trim == 'Yes' else omit }}"
+
+- name: Hinweis ausgeben, falls AppArmor im Kernel nicht aktiv ist
+  ansible.builtin.debug:
+    msg: >-
+      AppArmor ist im Kernel nicht aktiv ({{ hardening_apparmor_enabled.stdout | default('?') | trim }}).
+      Kernel-Parameter pruefen (apparmor=1 security=apparmor) und Reboot einplanen.
+  when: hardening_apparmor_enabled.stdout | default('') | trim != "Yes"
+
+- name: AppArmor-Profilstatus ermitteln
+  ansible.builtin.command: aa-status --json
+  register: hardening_apparmor_status
+  changed_when: false
+  failed_when: false
+  check_mode: false
+  when: hardening_apparmor_enabled.stdout | default('') | trim == "Yes"
+
+- name: Profile im complain-Modus melden (nicht erzwingend)
+  vars:
+    hardening_apparmor_complain: >-
+      {{ (hardening_apparmor_status.stdout | from_json).profiles | default({})
+         | dict2items | selectattr('value', 'equalto', 'complain')
+         | map(attribute='key') | list }}
+  ansible.builtin.debug:
+    msg: "AppArmor-Profile im complain-Modus (pruefen, ggf. aa-enforce): {{ hardening_apparmor_complain }}"
+  when:
+    - hardening_apparmor_status.rc | default(1) == 0
+    - hardening_apparmor_complain | length > 0

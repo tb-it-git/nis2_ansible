@@ -1,0 +1,4 @@
+---
+# Interne, distributionsspezifische Werte (Ubuntu 24.04/26.04).
+__logging_monitoring_audit_package: "auditd"
+__logging_monitoring_nologin: "/usr/sbin/nologin"

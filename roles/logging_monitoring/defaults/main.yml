@@ -1,6 +1,6 @@
 ---
 # roles/logging_monitoring/defaults/main.yml
-# Logging, Audit und Monitoring-Agent (RHEL 9/10). Ueberschreibbar.
+# Logging, Audit und Monitoring-Agent (RHEL 9/10, Ubuntu 24.04/26.04). Ueberschreibbar.
 
 # --- journald ---
 logging_monitoring_journald_storage: "persistent"
@@ -9,6 +9,9 @@ logging_monitoring_journald_max_retention: "1month"
 logging_monitoring_journald_forward_syslog: true
 
 # --- auditd ---
+# RHEL: Beispielregeln aus /usr/share/audit/sample-rules.
+# Ubuntu: rolleneigener Regelsatz (templates/30-nis2-ubuntu.rules.j2), da die
+# Beispielregeln dort nur als Doku (ggf. gar nicht) installiert sind.
 logging_monitoring_auditd_sample_rules:
   - "10-base-config.rules"
   - "30-stig.rules"
@@ -34,4 +37,3 @@ logging_monitoring_node_exporter_textfile_dir: "/var/lib/node_exporter/textfile_
 logging_monitoring_rsyslog_forward_enabled: false
 logging_monitoring_rsyslog_target: "logcollector.example.com"
 logging_monitoring_rsyslog_port: 514
-

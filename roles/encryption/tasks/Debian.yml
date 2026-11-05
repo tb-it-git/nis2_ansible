@@ -1,0 +1,123 @@
+---
+# Ubuntu hat kein update-crypto-policies. Gegenstuecke:
+#  - Basis-Policy  -> crypto-config-Profil (ab 26.04; OpenSSL, GnuTLS, APT, nginx)
+#  - Subpolicy     -> OpenSSL- und OpenSSH-Drop-in (encryption_custom_module_enabled)
+# OpenSSH ist auf Ubuntu von keiner systemweiten Policy erfasst.
+- name: Crypto-config-Profil aus der Krypto-Policy ableiten
+  ansible.builtin.set_fact:
+    __encryption_profile: "{{ encryption_crypto_policy | split(':') | first | lower }}"
+
+- name: Abbrechen, wenn die Policy auf Ubuntu nicht abbildbar ist
+  ansible.builtin.assert:
+    that: __encryption_profile in ['default', 'future', 'legacy']
+    fail_msg: >-
+      encryption_crypto_policy '{{ encryption_crypto_policy }}' ist auf Ubuntu nicht
+      abbildbar (moeglich: DEFAULT, FUTURE, LEGACY). FIPS erfordert Ubuntu Pro
+      ('pro enable fips-updates') und ist nicht Teil dieser Rolle.
+    quiet: true
+
+- name: Systemweites Krypto-Profil setzen (crypto-config, ab Ubuntu 26.04)
+  when: ansible_distribution_version is version('26.04', '>=')
+  block:
+    # jq fehlt in den Paketabhaengigkeiten, wird von crypto-config aber benoetigt.
+    - name: Crypto-config installieren
+      ansible.builtin.apt:
+        name:
+          - crypto-config
+          - jq
+        state: present
+
+    - name: Laufzeitprofile erzeugen
+      ansible.builtin.command: crypto-config generate-runtime-profiles
+      args:
+        creates: "/var/lib/crypto-config/profiles/{{ __encryption_profile }}"
+
+    - name: Aktuelles Krypto-Profil ermitteln
+      ansible.builtin.command: crypto-config get-current
+      register: encryption_current_profile
+      changed_when: false
+      check_mode: false
+
+    - name: Krypto-Profil umschalten
+      ansible.builtin.command: "crypto-config switch {{ __encryption_profile }}"
+      register: encryption_switch_profile
+      when: encryption_current_profile.stdout | trim != __encryption_profile
+      changed_when: encryption_switch_profile.rc == 0
+
+    - name: Reboot-Hinweis nach Profilwechsel
+      ansible.builtin.debug:
+        msg: >-
+          Krypto-Profil geaendert — Reboot einplanen, damit alle laufenden
+          Dienste das neue Profil uebernehmen.
+      when: encryption_switch_profile is changed
+
+- name: Hinweis fuer Ubuntu 24.04 (kein systemweites Krypto-Profil)
+  ansible.builtin.debug:
+    msg: >-
+      Ubuntu {{ ansible_distribution_version }} kennt kein systemweites Krypto-Profil —
+      '{{ encryption_crypto_policy }}' wird nicht umgesetzt. Verschaerfung nur ueber
+      encryption_custom_module_enabled (OpenSSL-/OpenSSH-Drop-in).
+  when:
+    - ansible_distribution_version is version('26.04', '<')
+    - __encryption_profile != 'default'
+
+# --- Gegenstueck zur Subpolicy NIS2-HARDENED ---
+- name: OpenSSL-Drop-in-Verzeichnis anlegen
+  ansible.builtin.file:
+    path: /etc/ssl/openssl.conf.d
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: encryption_custom_module_enabled | bool
+
+# Ab 26.04 bereits vorhanden; unter 24.04 wird die Zeile ergaenzt.
+- name: OpenSSL-Drop-in-Verzeichnis einbinden
+  ansible.builtin.lineinfile:
+    path: /etc/ssl/openssl.cnf
+    line: ".include /etc/ssl/openssl.conf.d"
+    insertafter: EOF
+  when: encryption_custom_module_enabled | bool
+
+- name: OpenSSL-Haertung ausbringen
+  ansible.builtin.template:
+    src: 90-nis2-hardened.cnf.j2
+    dest: /etc/ssl/openssl.conf.d/90-nis2-hardened.cnf
+    owner: root
+    group: root
+    mode: "0644"
+  when: encryption_custom_module_enabled | bool
+
+- name: OpenSSL-Haertung entfernen, wenn deaktiviert
+  ansible.builtin.file:
+    path: /etc/ssl/openssl.conf.d/90-nis2-hardened.cnf
+    state: absent
+  when: not encryption_custom_module_enabled | bool
+
+- name: SSH-Privilege-Separation-Verzeichnis fuer die Validierung sicherstellen
+  ansible.builtin.file:
+    path: /run/sshd
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: encryption_custom_module_enabled | bool
+
+# Vor allen anderen Drop-ins einsortiert: sshd nimmt den ersten gefundenen Wert.
+- name: OpenSSH-Kryptovorgaben ausbringen
+  ansible.builtin.copy:
+    content: "{{ encryption_ubuntu_ssh_content }}"
+    dest: /etc/ssh/sshd_config.d/05-nis2-crypto.conf
+    owner: root
+    group: root
+    mode: "0600"
+    validate: "/usr/sbin/sshd -t -f %s"
+  when: encryption_custom_module_enabled | bool
+  notify: Reload ssh (encryption)
+
+- name: OpenSSH-Kryptovorgaben entfernen, wenn deaktiviert
+  ansible.builtin.file:
+    path: /etc/ssh/sshd_config.d/05-nis2-crypto.conf
+    state: absent
+  when: not encryption_custom_module_enabled | bool
+  notify: Reload ssh (encryption)

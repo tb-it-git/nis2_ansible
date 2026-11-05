@@ -1,0 +1,7 @@
+// {{ ansible_managed }}
+// NIS2 / Paragraph 30 BSIG - periodische APT-Laeufe (roles/patch_management)
+// Zufallsverzoegerung uebernehmen die Timer selbst (RandomizedDelaySec).
+APT::Periodic::Update-Package-Lists "1";
+APT::Periodic::Download-Upgradeable-Packages "{{ patch_management_automatic_download | ternary('1', '0') }}";
+APT::Periodic::Unattended-Upgrade "{{ patch_management_automatic_apply | ternary('1', '0') }}";
+APT::Periodic::AutocleanInterval "7";

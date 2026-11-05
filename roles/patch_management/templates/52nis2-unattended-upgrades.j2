@@ -1,0 +1,30 @@
+// {{ ansible_managed }}
+// NIS2 / Paragraph 30 BSIG - automatische Sicherheitsupdates (roles/patch_management)
+// Wird nach 50unattended-upgrades gelesen; '#clear' ersetzt die dortigen Listen,
+// statt sie zu ergaenzen.
+
+#clear Unattended-Upgrade::Allowed-Origins;
+#clear Unattended-Upgrade::Origins-Pattern;
+Unattended-Upgrade::Allowed-Origins {
+        "${distro_id}:${distro_codename}-security";
+        "${distro_id}ESMApps:${distro_codename}-apps-security";
+        "${distro_id}ESM:${distro_codename}-infra-security";
+{% if patch_management_automatic_upgrade_type == "default" %}
+        "${distro_id}:${distro_codename}-updates";
+{% endif %}
+};
+
+// Gegenstueck zu excludepkgs (Python-Regex auf den Paketnamen)
+#clear Unattended-Upgrade::Package-Blacklist;
+Unattended-Upgrade::Package-Blacklist {
+{% for item in patch_management_unattended_blacklist %}
+        "{{ item }}";
+{% endfor %}
+};
+
+// Keine automatischen Reboots — die gehoeren ins Wartungsfenster.
+Unattended-Upgrade::Automatic-Reboot "false";
+{% if patch_management_unattended_mail | length > 0 %}
+Unattended-Upgrade::Mail "{{ patch_management_unattended_mail }}";
+Unattended-Upgrade::MailReport "on-change";
+{% endif %}

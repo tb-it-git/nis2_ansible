@@ -1,11 +1,11 @@
 ---
 # roles/backup/defaults/main.yml
-# Ransomware-resistente Sicherung mit Restic (RHEL 9/10). Ueberschreibbar.
+# Ransomware-resistente Sicherung mit Restic (RHEL 9/10, Ubuntu 24.04/26.04). Ueberschreibbar.
 # Hinweis: Geheimnisse (backup_password, backup_env) per Ansible Vault setzen.
 
-backup_package: "restic"        # aus EPEL
+backup_package: "restic"        # RHEL: aus EPEL, Ubuntu: aus universe
 
-# EPEL bereitstellen (restic ist nicht in den RHEL-Basis-Repos)
+# EPEL bereitstellen (restic ist nicht in den RHEL-Basis-Repos; auf Ubuntu ohne Wirkung)
 backup_install_epel: false
 
 # Was wird gesichert

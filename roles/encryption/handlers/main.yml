@@ -1,0 +1,6 @@
+---
+# Nur Ubuntu (OpenSSH-Drop-in); unter RHEL wirkt die Krypto-Policy.
+- name: Reload ssh (encryption)
+  ansible.builtin.service:
+    name: ssh
+    state: reloaded

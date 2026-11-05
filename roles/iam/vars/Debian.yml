@@ -1,0 +1,8 @@
+---
+# Interne, distributionsspezifische Werte (Ubuntu 24.04/26.04).
+__iam_packages:
+  - sssd
+  - libpam-sss
+  - libnss-sss
+  - libsss-sudo
+  - libpam-pwquality

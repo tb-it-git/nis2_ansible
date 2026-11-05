@@ -1,0 +1,8 @@
+---
+# Interne, distributionsspezifische Werte (RHEL 9/10).
+__encryption_nbde_packages:
+  - clevis
+  - clevis-luks
+  - clevis-dracut
+  - cryptsetup
+  - tpm2-tools

@@ -1,0 +1,8 @@
+---
+# Interne, distributionsspezifische Werte (Ubuntu 24.04/26.04).
+__patch_management_scan_packages:
+  - openscap-scanner
+  - bzip2
+  - curl
+  - ca-certificates
+__patch_management_scan_script: "nis2-oval-scan-ubuntu.sh.j2"

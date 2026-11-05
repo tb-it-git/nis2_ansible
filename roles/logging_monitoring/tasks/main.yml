@@ -1,4 +1,7 @@
 ---
+- name: Betriebssystemspezifische Variablen laden
+  ansible.builtin.include_vars: "{{ ansible_os_family }}.yml"
+
 # --- journald ---
 - name: Journald-Drop-in-Verzeichnis sicherstellen
   ansible.builtin.file:
@@ -28,8 +31,8 @@
 
 # --- auditd ---
 - name: Audit-Paket installieren
-  ansible.builtin.dnf:
-    name: audit
+  ansible.builtin.package:
+    name: "{{ __logging_monitoring_audit_package }}"
     state: present
 
 - name: Audit-Status ermitteln (Immutable-Erkennung)
@@ -48,6 +51,31 @@
     group: root
     mode: "0640"
   loop: "{{ logging_monitoring_auditd_sample_rules }}"
+  when: ansible_os_family == "RedHat"
+  notify:
+    - Load audit rules
+    - Audit-Reboot-Hinweis
+
+# Ubuntu: Beispielregeln liegen nur unter /usr/share/doc (fehlt auf minimierten
+# Systemen, Pfad wechselt je Release) -> rolleneigener Regelsatz.
+- name: Privilegierte Programme ermitteln (setuid/setgid, Ubuntu)
+  ansible.builtin.command: find /usr/bin /usr/sbin /usr/lib /usr/libexec -xdev -type f -perm /6000
+  register: logging_monitoring_privileged_find
+  changed_when: false
+  failed_when: logging_monitoring_privileged_find.rc not in [0, 1]
+  check_mode: false
+  when: ansible_os_family == "Debian"
+
+- name: NIS2-Audit-Regeln ausbringen (Ubuntu)
+  vars:
+    logging_monitoring_privileged_files: "{{ logging_monitoring_privileged_find.stdout_lines | sort }}"
+  ansible.builtin.template:
+    src: 30-nis2-ubuntu.rules.j2
+    dest: /etc/audit/rules.d/30-nis2.rules
+    owner: root
+    group: root
+    mode: "0640"
+  when: ansible_os_family == "Debian"
   notify:
     - Load audit rules
     - Audit-Reboot-Hinweis
@@ -92,7 +120,7 @@
       ansible.builtin.user:
         name: node_exporter
         system: true
-        shell: /sbin/nologin
+        shell: "{{ __logging_monitoring_nologin }}"
         create_home: false
 
     - name: Textfile-Collector-Verzeichnis anlegen

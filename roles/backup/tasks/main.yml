@@ -3,16 +3,20 @@
   ansible.builtin.rpm_key:
     key: "https://dl.fedoraproject.org/pub/epel/RPM-GPG-KEY-EPEL-{{ ansible_distribution_major_version }}"
     state: present
-  when: backup_install_epel | bool
+  when:
+    - ansible_os_family == "RedHat"
+    - backup_install_epel | bool
 
 - name: EPEL-Release installieren
   ansible.builtin.dnf:
     name: "https://dl.fedoraproject.org/pub/epel/epel-release-latest-{{ ansible_distribution_major_version }}.noarch.rpm"
     state: present
-  when: backup_install_epel | bool
+  when:
+    - ansible_os_family == "RedHat"
+    - backup_install_epel | bool
 
 - name: Restic installieren
-  ansible.builtin.dnf:
+  ansible.builtin.package:
     name: "{{ backup_package }}"
     state: present
 

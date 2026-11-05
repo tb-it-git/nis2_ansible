@@ -31,6 +31,10 @@ hardening_sysctl:
 hardening_selinux_state: "enforcing"
 hardening_selinux_policy: "targeted"
 
+# --- AppArmor (Ubuntu; Gegenstueck zu SELinux) ---
+# Keine Variablen: Die Rolle stellt sicher, dass AppArmor aktiv ist, und meldet
+# Profile im complain-Modus. Pauschales Umschalten auf enforce erfolgt bewusst nicht.
+
 # --- Dienste/Pakete ---
 hardening_services_disable:
   - avahi-daemon.socket
@@ -38,9 +42,9 @@ hardening_services_disable:
 hardening_services_mask:
   - telnet.socket
   - rsh.socket
-hardening_packages_absent:
-  - telnet-server
-  - tftp-server
+# Paketnamen sind distributionsspezifisch: Standard aus vars/<OS-Familie>.yml
+# (RHEL: telnet-server, tftp-server; Ubuntu: telnetd, inetutils-telnetd, tftpd-hpa)
+hardening_packages_absent: "{{ __hardening_packages_absent }}"
 
 # --- firewalld ---
 hardening_firewalld_zone: "public"
@@ -48,3 +52,12 @@ hardening_firewalld_services:
   - ssh
 # Standardzone auf die (restriktive) Zielzone setzen? Aussperr-Risiko: bewusst opt-in.
 hardening_firewalld_set_default_zone: false
+
+# --- ufw (Ubuntu; Gegenstueck zu firewalld) ---
+# Freigaben werden VOR dem Aktivieren gesetzt (Aussperr-Schutz).
+# Eintraege: rule (allow|limit|deny), name (ufw-App-Profil) ODER port/proto, optional from_ip.
+hardening_ufw_rules:
+  - rule: allow
+    name: OpenSSH
+hardening_ufw_default_incoming: "deny"
+hardening_ufw_logging: "low"

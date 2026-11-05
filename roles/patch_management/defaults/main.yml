@@ -1,8 +1,9 @@
 ---
 # roles/patch_management/defaults/main.yml
-# Automatisches Patch-/Schwachstellenmanagement (RHEL 9/10). Ueberschreibbar.
+# Automatisches Patch-/Schwachstellenmanagement (RHEL 9/10, Ubuntu 24.04/26.04). Ueberschreibbar.
 
 # --- dnf-automatic (/etc/dnf/automatic.conf) ---
+# upgrade_type, download und apply gelten auf Ubuntu sinngemaess fuer unattended-upgrades.
 patch_management_automatic_upgrade_type: "security"   # security | default
 patch_management_automatic_download: true
 patch_management_automatic_apply: true
@@ -14,6 +15,15 @@ patch_management_automatic_excludepkgs:
 # Timer (z. B. dnf-automatic-notifyonly.timer) zum stufenweisen Einstieg.
 patch_management_automatic_timer: "dnf-automatic.timer"
 
+# --- unattended-upgrades (Ubuntu; /etc/apt/apt.conf.d/52nis2-unattended-upgrades) ---
+# Gegenstueck zu excludepkgs: Python-Regex, ab Anfang des Paketnamens.
+# "linux-" haelt Kernel, Header, Module und Metapakete (auch linux-firmware) zurueck.
+patch_management_unattended_blacklist:
+  - "linux-"
+# Empfaenger fuer Berichte (Gegenstueck zu emit_via=email); leer = nur Logdatei
+# (/var/log/unattended-upgrades/). Erfordert einen lokalen MTA.
+patch_management_unattended_mail: ""
+
 # --- optionaler woechentlicher OVAL-Schwachstellenscan ---
 patch_management_oval_scan_enabled: true
 patch_management_oval_report_dir: "/var/log/compliance"
@@ -21,3 +31,5 @@ patch_management_oval_oncalendar: "Sun *-*-* 03:00:00"
 # Basis-URL der Red-Hat-OVAL-Daten (nur RHEL <= 9; OVAL v2 ist im Maintenance
 # Mode). Auf RHEL 10+ erzeugt das Skript stattdessen einen updateinfo-Report.
 patch_management_oval_base_url: "https://www.redhat.com/security/data/oval/v2"
+# Canonical-OVAL-Daten (USN) fuer Ubuntu; Dateiname folgt dem Release-Codenamen.
+patch_management_oval_ubuntu_base_url: "https://security-metadata.canonical.com/oval"
