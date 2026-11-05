@@ -1,0 +1,50 @@
+---
+# Ubuntu-Gegenstueck zu authselect: pam-auth-update mit Profilen aus
+# /usr/share/pam-configs. sss (libpam-sss) und pwquality werden von den Paketen
+# selbst aktiviert; libnss-sss/libsss-sudo tragen sss in /etc/nsswitch.conf ein.
+- name: IAM-Pakete installieren
+  ansible.builtin.apt:
+    name: "{{ iam_packages }}"
+    state: present
+
+# Ubuntu liefert pam_faillock.so, aber kein pam-auth-update-Profil dafuer.
+- name: Pam-auth-update-Profile fuer faillock ausbringen
+  ansible.builtin.copy:
+    src: "pam-configs-{{ item }}"
+    dest: "/usr/share/pam-configs/{{ item }}"
+    owner: root
+    group: root
+    mode: "0644"
+  loop:
+    - faillock
+    - faillock_notify
+
+- name: Aktive PAM-Profile ermitteln
+  ansible.builtin.command: debconf-show libpam-runtime
+  register: iam_pam_current
+  changed_when: false
+  check_mode: false
+
+- name: PAM-Profile aktivieren
+  vars:
+    iam_pam_enabled: >-
+      {{ iam_pam_current.stdout | regex_search('libpam-runtime/profiles:\s*(.*)', '\1') | default([''], true) | first
+         | split(',') | map('trim') | list }}
+  ansible.builtin.command:
+    argv: "{{ ['pam-auth-update', '--enable'] + iam_pam_profiles }}"
+  environment:
+    DEBIAN_FRONTEND: noninteractive
+  changed_when: true
+  when: iam_pam_profiles | reject('in', iam_pam_enabled) | list | length > 0
+
+# Ab Ubuntu 26.04 ist sudo-rs Standard; es kennt u. a. 'Defaults logfile' nicht
+# und protokolliert stattdessen ueber syslog/journald.
+- name: Sudo-Implementierung ermitteln
+  ansible.builtin.command: sudo -V
+  register: iam_sudo_version
+  changed_when: false
+  check_mode: false
+
+- name: Sudo-rs-Kennzeichen setzen
+  ansible.builtin.set_fact:
+    __iam_sudo_rs: "{{ iam_sudo_version.stdout_lines | first is search('sudo-rs') }}"

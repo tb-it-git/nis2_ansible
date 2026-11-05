@@ -24,10 +24,20 @@
     group: root
     mode: "0755"
 
+# Ubuntu (Socket-Aktivierung): /run/sshd existiert evtl. noch nicht -> 'sshd -t' schlaegt fehl.
+- name: Privilege-Separation-Verzeichnis fuer die Validierung sicherstellen (Ubuntu)
+  ansible.builtin.file:
+    path: /run/sshd
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  when: ansible_os_family == "Debian"
+
 - name: SSH-Haertung als Drop-in ausbringen
   ansible.builtin.template:
     src: 50-nis2-hardening.conf.j2
-    dest: /etc/ssh/sshd_config.d/50-nis2-hardening.conf
+    dest: "/etc/ssh/sshd_config.d/{{ __hardening_ssh_dropin }}"
     owner: root
     group: root
     mode: "0600"

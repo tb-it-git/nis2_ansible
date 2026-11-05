@@ -3,5 +3,7 @@
 {% if iam_sudo_use_pty %}
 Defaults use_pty
 {% endif %}
+{% if not (__iam_sudo_rs | default(false)) %}
 Defaults logfile="{{ iam_sudo_logfile }}"
+{% endif %}
 %{{ iam_sudo_admin_group }} ALL=(ALL) ALL

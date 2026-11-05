@@ -1,0 +1,4 @@
+---
+# Interne, distributionsspezifische Werte (RHEL 9/10).
+__logging_monitoring_audit_package: "audit"
+__logging_monitoring_nologin: "/sbin/nologin"

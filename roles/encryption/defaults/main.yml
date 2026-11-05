@@ -1,6 +1,6 @@
 ---
 # roles/encryption/defaults/main.yml
-# Systemweite Krypto-Policy und NBDE-Tooling (RHEL 9/10).
+# Systemweite Krypto-Policy und NBDE-Tooling (RHEL 9/10, Ubuntu 24.04/26.04).
 # Die LUKS-Einrichtung selbst ist datentraegerspezifisch/destruktiv und NICHT Teil dieser Rolle.
 
 # Systemweite Krypto-Policy: DEFAULT | FUTURE | LEGACY | FIPS
@@ -23,9 +23,29 @@ encryption_custom_module_content: |
 
 # Optional: NBDE-/LUKS-Tooling installieren (fuer spaeteres clevis luks bind)
 encryption_install_nbde_tools: false
-encryption_nbde_packages:
-  - clevis
-  - clevis-luks
-  - clevis-dracut
-  - cryptsetup
-  - tpm2-tools
+# Paketnamen sind distributionsspezifisch: Standard aus vars/<OS-Familie>.yml
+# (RHEL: clevis-dracut; Ubuntu: clevis-initramfs, clevis-tpm2)
+encryption_nbde_packages: "{{ __encryption_nbde_packages }}"
+
+# --- Ubuntu ---
+# encryption_crypto_policy wird (ab 26.04) auf ein crypto-config-Profil abgebildet:
+# DEFAULT -> default, FUTURE -> future, LEGACY -> legacy; eine Subpolicy-Angabe
+# (":...") wird ignoriert. Ubuntu 24.04 hat kein systemweites Profil.
+# Achtung 'future': u. a. nur TLS 1.3 und APT akzeptiert nur noch Ed25519/Ed448-
+# signierte Repositories — Fremd-Repos mit RSA-Schluesseln vorher pruefen!
+#
+# encryption_custom_module_enabled setzt auf Ubuntu statt der .pmod-Datei zwei Drop-ins um:
+# /etc/ssl/openssl.conf.d/90-nis2-hardened.cnf (OpenSSL, systemweit)
+encryption_ubuntu_tls_min_protocol: "TLSv1.2"     # bei Profil 'future' (26.04) automatisch TLSv1.3
+encryption_ubuntu_tls_cipher_string: "ECDHE+AESGCM:ECDHE+CHACHA20:DHE+AESGCM:DHE+CHACHA20:@SECLEVEL=3"
+# /etc/ssh/sshd_config.d/05-nis2-crypto.conf (OpenSSH; "-" entfernt aus der Standardliste)
+encryption_ubuntu_ssh_content: |
+  # NIS2-HARDENED (roles/encryption): schwache Verfahren aus den OpenSSH-Standards entfernen
+  Ciphers -*-cbc
+  MACs -*sha1*,umac-64*
+  KexAlgorithms -*sha1*
+  HostKeyAlgorithms -ssh-rsa,ssh-rsa-cert-v01@openssh.com
+  PubkeyAcceptedAlgorithms -ssh-rsa,ssh-rsa-cert-v01@openssh.com
+  # Entspricht min_rsa_size = 3072. ACHTUNG: RSA-Benutzerschluessel < 3072 Bit
+  # werden abgewiesen — vor dem Ausrollen pruefen (Aussperr-Risiko)!
+  RequiredRSASize 3072

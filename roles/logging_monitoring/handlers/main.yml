@@ -4,9 +4,18 @@
     name: systemd-journald
     state: restarted
 
+# Im Immutable-Modus (-e 2) lehnt der Kernel Regelaenderungen ab -> nur Hinweis.
 - name: Load audit rules
   ansible.builtin.command: augenrules --load
   changed_when: true
+  when: "'enabled 2' not in (logging_monitoring_audit_status.stdout | default(''))"
+
+- name: Audit-Reboot-Hinweis
+  ansible.builtin.debug:
+    msg: >-
+      Audit-Regelbestand ist immutable (-e 2) — die geaenderten Regeln
+      werden erst nach einem Reboot wirksam.
+  when: "'enabled 2' in (logging_monitoring_audit_status.stdout | default(''))"
 
 - name: Restart rsyslog
   ansible.builtin.systemd_service:

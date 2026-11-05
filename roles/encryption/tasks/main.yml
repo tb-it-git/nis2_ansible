@@ -1,35 +1,17 @@
 ---
-- name: Eigene Krypto-Subpolicy ausbringen
-  ansible.builtin.copy:
-    content: "{{ encryption_custom_module_content }}"
-    dest: "/etc/crypto-policies/policies/modules/{{ encryption_custom_module_name }}.pmod"
-    owner: root
-    group: root
-    mode: "0644"
-  when: encryption_custom_module_enabled | bool
+- name: Betriebssystemspezifische Variablen laden
+  ansible.builtin.include_vars: "{{ ansible_os_family }}.yml"
 
-- name: Aktuelle Krypto-Policy ermitteln
-  ansible.builtin.command: update-crypto-policies --show
-  register: encryption_current_policy
-  changed_when: false
+- name: Systemweite Krypto-Policy (update-crypto-policies, RHEL)
+  ansible.builtin.import_tasks: RedHat.yml
+  when: ansible_os_family == "RedHat"
 
-- name: Systemweite Krypto-Policy setzen
-  ansible.builtin.command: "update-crypto-policies --set {{ encryption_crypto_policy }}"
-  register: encryption_set_policy
-  when: encryption_current_policy.stdout | trim != encryption_crypto_policy
-  changed_when: encryption_set_policy.rc == 0
-  # Hinweis: Nach einem Policy-Wechsel wird ein Reboot empfohlen, damit alle
-  # laufenden Dienste die neue Krypto-Policy uebernehmen.
-
-- name: Reboot-Hinweis nach Policy-Wechsel
-  ansible.builtin.debug:
-    msg: >-
-      Krypto-Policy geaendert — Reboot einplanen, damit alle laufenden
-      Dienste die neue Policy uebernehmen.
-  when: encryption_set_policy is changed
+- name: Krypto-Vorgaben (crypto-config, OpenSSL/OpenSSH, Ubuntu)
+  ansible.builtin.import_tasks: Debian.yml
+  when: ansible_os_family == "Debian"
 
 - name: NBDE-/LUKS-Tooling installieren
-  ansible.builtin.dnf:
+  ansible.builtin.package:
     name: "{{ encryption_nbde_packages }}"
     state: present
   when: encryption_install_nbde_tools | bool

@@ -1,0 +1,11 @@
+---
+# Interne, distributionsspezifische Werte (Ubuntu 24.04/26.04). Nicht ueberschreiben —
+# dafuer die Variablen aus defaults/main.yml verwenden.
+__hardening_packages_absent:
+  - telnetd
+  - inetutils-telnetd
+  - tftpd-hpa
+__hardening_ssh_service: "ssh"
+# Ubuntu-Cloud-Images bringen 50-cloud-init.conf (ggf. "PasswordAuthentication yes") mit.
+# sshd nimmt den ERSTEN gefundenen Wert -> das NIS2-Drop-in muss davor einsortiert sein.
+__hardening_ssh_dropin: "10-nis2-hardening.conf"

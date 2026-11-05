@@ -1,7 +1,12 @@
 # {{ ansible_managed }}
 # NIS2 / Paragraph 30 BSIG - SSH-Haertung (roles/hardening)
+{% if ansible_os_family == "RedHat" %}
 # Hinweis: Krypto (Ciphers/MACs/KexAlgorithms) NICHT hier setzen,
 # sondern systemweit ueber update-crypto-policies (siehe Kapitel 9).
+{% else %}
+# Hinweis: Krypto (Ciphers/MACs/KexAlgorithms) NICHT hier setzen —
+# Ubuntu hat keine Krypto-Policy fuer OpenSSH; siehe 05-nis2-crypto.conf (roles/encryption).
+{% endif %}
 PermitRootLogin {{ hardening_ssh_permit_root_login }}
 PasswordAuthentication {{ hardening_ssh_password_auth }}
 KbdInteractiveAuthentication no

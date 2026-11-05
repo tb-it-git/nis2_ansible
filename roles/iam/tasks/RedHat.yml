@@ -1,0 +1,27 @@
+---
+- name: IAM-Pakete installieren
+  ansible.builtin.dnf:
+    name: "{{ iam_packages }}"
+    state: present
+
+- name: Oddjobd fuer mkhomedir aktivieren
+  ansible.builtin.systemd_service:
+    name: oddjobd
+    enabled: true
+    state: started
+  when: "'with-mkhomedir' in iam_authselect_features"
+
+- name: Aktuelles authselect-Profil ermitteln
+  ansible.builtin.command: authselect current
+  register: iam_authselect_current
+  changed_when: false
+  failed_when: false
+
+- name: Authselect-Profil mit Features aktivieren
+  ansible.builtin.command:
+    argv: "{{ ['authselect', 'select', iam_authselect_profile] + iam_authselect_features + ['--force'] }}"
+  register: iam_authselect_apply
+  changed_when: iam_authselect_apply.rc == 0
+  when: >-
+    iam_authselect_profile not in iam_authselect_current.stdout
+    or iam_authselect_features | reject('in', iam_authselect_current.stdout) | list | length > 0

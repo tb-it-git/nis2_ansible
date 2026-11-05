@@ -1,0 +1,44 @@
+---
+- name: Scanner-Pakete installieren
+  ansible.builtin.package:
+    name: "{{ __patch_management_scan_packages }}"
+    state: present
+
+- name: Report-Verzeichnis anlegen
+  ansible.builtin.file:
+    path: "{{ patch_management_oval_report_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: OVAL-Scan-Skript ausbringen
+  ansible.builtin.template:
+    src: "{{ __patch_management_scan_script }}"
+    dest: /usr/local/bin/nis2-oval-scan.sh
+    owner: root
+    group: root
+    mode: "0750"
+
+- name: OVAL-Scan-Service ausbringen
+  ansible.builtin.template:
+    src: nis2-oval-scan.service.j2
+    dest: /etc/systemd/system/nis2-oval-scan.service
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: OVAL-Scan-Timer ausbringen
+  ansible.builtin.template:
+    src: nis2-oval-scan.timer.j2
+    dest: /etc/systemd/system/nis2-oval-scan.timer
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: OVAL-Scan-Timer aktivieren und starten
+  ansible.builtin.systemd_service:
+    name: nis2-oval-scan.timer
+    enabled: true
+    state: started
+    daemon_reload: true
